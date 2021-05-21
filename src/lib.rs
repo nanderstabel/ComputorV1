@@ -6,25 +6,25 @@
 /*   By: nstabel <nstabel@student.codam.nl>           +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2021/05/06 18:20:27 by nstabel       #+#    #+#                 */
-/*   Updated: 2021/05/20 20:11:26 by nstabel       ########   odam.nl         */
+/*   Updated: 2021/05/21 17:41:53 by nstabel       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#[derive(Debug, Clone)]
-pub enum Operator {
-    Addition,
-    Subtract,
-    Multiplication,
-    Division,
-    Exponent
+// #[derive(Debug, Clone)]
+// pub enum Operator {
+//     Addition,
+//     Subtract,
+//     Multiplication,
+//     Division,
+//     Exponent
     
-}
+// }
 
 #[derive(Debug, Clone)]
 pub enum Token {
-    Operator,
-    Number(u64),
-    Paren
+    Operator(char),
+    Number(u32),
+    Paren(char)
 }
 
 // #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ pub enum Token {
 #[derive(Debug, Default)]
 pub struct Computor {
     buf: String,
-    tokens: Vec<Operator>
+    tokens: Vec<Token>
 }
 
 impl Computor {
@@ -76,19 +76,21 @@ impl Computor {
         println!("{:?}", self.tokens);
     }
 
-    pub fn tokenize(&mut self) {
-        for c in self.buf.chars() {
+    pub fn scanner(&mut self) {
+        let mut scanner = self.buf.chars().peekable();
+
+        while let Some(c) = scanner.next() {
             match c {
-                '+' => self.tokens.push(Operator::Addition),
-                '-' => self.tokens.push(Operator::Subtract),
-                '*' => self.tokens.push(Operator::Multiplication),
-                '/' => self.tokens.push(Operator::Division),
-                '^' => self.tokens.push(Operator::Exponent),
-                _ => continue
+                '+' | '-' | '*' | '/' | '^' => self.tokens.push(Token::Operator(c)),
+                '0' ..= '9' => self.tokens.push(Token::Number(c.to_digit(10).unwrap())),
+                '(' | ')' => self.tokens.push(Token::Paren(c)),
+                _ => {}
             }
+            // println!("1: {}, 2: {:?}", c, scanner);
         }
     }
 }
+
 
 
 #[cfg(test)]
@@ -98,6 +100,10 @@ mod tests {
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
+    }
+    #[test]
+    fn it_still_works() {
+        assert_eq!(2 + 1, 3);
     }
 }
  
