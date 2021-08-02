@@ -9,26 +9,31 @@ pub enum Token {
     Paren(char)
 }
 
-#[derive(Debug)]
-pub struct ParseNode<'a> {
-	entry: &'a Token,
-	children: Vec<ParseNode<'a>>,
+#[derive(Debug, Default)]
+pub struct Term {
+	sign: i8,
+	coefficient: Option<f64>,
+	constant: Option<f64>,
+    identifier: Option<String>,
+    exponent: Option<f64>,
+}
+
+#[derive(Debug, Default)]
+pub struct Node {
+	token: Token,
+	children: Vec<Node>
 }
 
 #[derive(Debug, Default)]
 pub struct Computor {
     buf: String,
-    tokens: Vec<Token>
+    tokens: Vec<Token>,
+	terms: Vec<Term>
 }
 
 impl Computor {
     pub fn ingest(&mut self, buf: String) {
         self.buf = buf;
-    }
-
-    pub fn print(&mut self) {
-        println!("{}", self.buf);
-        println!("{:#?}", self.tokens);
     }
 
     pub fn tokenize(&mut self) {
@@ -46,11 +51,30 @@ impl Computor {
     }
 
 	pub fn parse(&mut self) {
-		let mut tokens = self.tokens.iter();
+		let mut tokens = self.tokens.iter().Peekable();
+		let mut tree = Vec<Node>;
 		while let Some(token) = tokens.next() {
-			let node = ParseNode { entry: token, children: Vec::new() };
+
+			tree.push( Node {
+				token: token,
+
+			})
+			// println!("{}, {}, {}", sign, coefficient, identifier);
+
+
+			// self.terms.push( Term {
+			// 	coefficient: 0.0,
+			// 	identifier: String::from("temp"),
+			// 	exponent: 0.0
+			// });
 		}
 	}
+
+    pub fn print(&mut self) {
+        // println!("{}", self.buf);
+        println!("{:?}", self.tokens);
+        println!("{:#?}", self.terms);
+    }
 }
 
 fn get_number<I>(lexer: &mut Peekable<I>, c: char) -> f64

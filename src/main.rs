@@ -23,7 +23,7 @@ fn main () {
         computor.ingest(arg);
         computor.tokenize();
 		computor.parse();
-        // computor.print();
+        computor.print();
     }
 
 }
