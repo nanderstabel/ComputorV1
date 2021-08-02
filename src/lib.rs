@@ -1,64 +1,19 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   lib.rs                                             :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: nstabel <nstabel@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2021/05/06 18:20:27 by nstabel       #+#    #+#                 */
-/*   Updated: 2021/05/21 17:41:53 by nstabel       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
-// #[derive(Debug, Clone)]
-// pub enum Operator {
-//     Addition,
-//     Subtract,
-//     Multiplication,
-//     Division,
-//     Exponent
-    
-// }
+use std::iter::Peekable;
+use Token::*;
 
 #[derive(Debug, Clone)]
 pub enum Token {
     Operator(char),
-    Number(u32),
+    Number(f64),
+	Identifier(String),
     Paren(char)
 }
 
-// #[derive(Debug, Clone)]
-// pub struct Node {
-//     pub entry: Token,
-//     pub children: Vec<Node>
-// }
-
-// impl Node {
-//     pub fn new() -> Node {
-//         Node {
-//             entry: Token::Paren,
-//             children: Vec::new()
-//         }
-//     }
-// }
-
-// #[derive(Debug, Clone)]
-// pub enum LexItem {
-//     Paren(char),
-//     Op(char),
-//     Num(u64)
-// }
-
-// fn get_number<T: Iterator<Item = char>>(c: char, iter: &mut Peekable<T>) -> u64 {
-//     let mut number = c.to_string().parse::<u64>().expect("The caller should have passed a digit.");
-//     while let Some(Ok(digit)) = iter.peek().map(|c| c.to_string().parse::<u64>()) {
-//         number = number * 10 + digit;
-//         iter.next();
-//     }
-//     number
-// }
-
-
+#[derive(Debug)]
+pub struct ParseNode<'a> {
+	entry: &'a Token,
+	children: Vec<ParseNode<'a>>,
+}
 
 #[derive(Debug, Default)]
 pub struct Computor {
@@ -73,37 +28,58 @@ impl Computor {
 
     pub fn print(&mut self) {
         println!("{}", self.buf);
-        println!("{:?}", self.tokens);
+        println!("{:#?}", self.tokens);
     }
 
-    pub fn scanner(&mut self) {
-        let mut scanner = self.buf.chars().peekable();
-
-        while let Some(c) = scanner.next() {
+    pub fn tokenize(&mut self) {
+        let mut lexer = self.buf.chars().peekable();
+        while let Some(c) = lexer.next() {
             match c {
-                '+' | '-' | '*' | '/' | '^' => self.tokens.push(Token::Operator(c)),
-                '0' ..= '9' => self.tokens.push(Token::Number(c.to_digit(10).unwrap())),
-                '(' | ')' => self.tokens.push(Token::Paren(c)),
-                _ => {}
+                '+' | '-' | '*' | '/' | '^' | '=' => self.tokens.push(Operator(c)),
+				'a' ..= 'z' | 'A' ..= 'Z' => self.tokens.push(Identifier(get_identifier(&mut lexer, c))),
+                '0' ..= '9' => self.tokens.push(Number(get_number(&mut lexer, c))),
+                '(' | ')' => self.tokens.push(Paren(c)),
+				c if c.is_whitespace() => {},
+                _ => panic!("Unexpected char: {}", c)
             }
-            // println!("1: {}, 2: {:?}", c, scanner);
         }
     }
+
+	pub fn parse(&mut self) {
+		let mut tokens = self.tokens.iter();
+		while let Some(token) = tokens.next() {
+			let node = ParseNode { entry: token, children: Vec::new() };
+		}
+	}
 }
 
-
-
-#[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-    #[test]
-    fn it_still_works() {
-        assert_eq!(2 + 1, 3);
-    }
+fn get_number<I>(lexer: &mut Peekable<I>, c: char) -> f64
+where I: Iterator<Item = char>, {
+	let mut number = c.to_string();
+	let mut is_float = false;
+	while let Some(c) = lexer.peek() {
+		match c {
+			'0' ..= '9' => number.push(*c),
+			'.' if !is_float => {
+				number.push(*c);
+				is_float = true;
+			}
+			_ => break
+		}
+		lexer.next();
+	}
+	number.parse().unwrap()
 }
- 
+
+fn get_identifier<I>(lexer: &mut Peekable<I>, c: char) -> String
+where I: Iterator<Item = char>, {
+	let mut identifier = c.to_string();
+	while let Some(c) = lexer.peek() {
+		match c {
+			'0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' => identifier.push(*c),
+			_ => break
+		}
+		lexer.next();
+	}
+	identifier
+}
