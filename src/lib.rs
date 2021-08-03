@@ -9,26 +9,16 @@ pub enum Token {
     Paren(char)
 }
 
-#[derive(Debug, Default)]
-pub struct Term {
-	sign: i8,
-	coefficient: Option<f64>,
-	constant: Option<f64>,
-    identifier: Option<String>,
-    exponent: Option<f64>,
-}
-
-#[derive(Debug, Default)]
-pub struct Node {
-	token: Token,
-	children: Vec<Node>
+#[derive(Debug)]
+pub struct Node<'a> {
+	token: &'a Token,
+	children: Vec<Node<'a>>
 }
 
 #[derive(Debug, Default)]
 pub struct Computor {
     buf: String,
     tokens: Vec<Token>,
-	terms: Vec<Term>
 }
 
 impl Computor {
@@ -51,29 +41,22 @@ impl Computor {
     }
 
 	pub fn parse(&mut self) {
-		let mut tokens = self.tokens.iter().Peekable();
-		let mut tree = Vec<Node>;
+		let mut tokens = self.tokens.iter().peekable();
+		let mut tree : Vec<Node> = Vec::new();
 		while let Some(token) = tokens.next() {
 
 			tree.push( Node {
 				token: token,
+				children: Vec::new()
+			});
 
-			})
-			// println!("{}, {}, {}", sign, coefficient, identifier);
-
-
-			// self.terms.push( Term {
-			// 	coefficient: 0.0,
-			// 	identifier: String::from("temp"),
-			// 	exponent: 0.0
-			// });
 		}
+
 	}
 
     pub fn print(&mut self) {
         // println!("{}", self.buf);
         println!("{:?}", self.tokens);
-        println!("{:#?}", self.terms);
     }
 }
 
