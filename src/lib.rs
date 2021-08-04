@@ -44,6 +44,11 @@ impl Computor {
 		let mut tokens = self.tokens.iter().peekable();
 		let mut tree : Vec<Node> = Vec::new();
 		while let Some(token) = tokens.next() {
+			match token {
+				Number(num) => println!("number"),
+				Operator('+') | Operator('-') => println!("operator"),
+				_ => ()
+			};
 
 			tree.push( Node {
 				token: token,
@@ -51,7 +56,7 @@ impl Computor {
 			});
 
 		}
-
+		println!("{:#?}", tree);
 	}
 
     pub fn print(&mut self) {
