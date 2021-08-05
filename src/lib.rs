@@ -1,4 +1,5 @@
 use std::iter::Peekable;
+use std::str::Chars;
 use Token::*;
 
 #[derive(Debug, Clone)]
@@ -15,54 +16,60 @@ pub struct Node<'a> {
 	children: Vec<Node<'a>>
 }
 
-#[derive(Debug, Default)]
+// #[derive(Debug, Default)]
 pub struct Computor {
-    buf: String,
+    // buf: String,
     tokens: Vec<Token>,
+	lexer: Box<Iterator<Item = char>>
 }
+
+// impl<'a> Default for Computor {
+// 	fn Default 
+// }
 
 impl Computor {
     pub fn ingest(&mut self, buf: String) {
-        self.buf = buf;
+        // self.buf = buf;
+		self.lexer = Box::new(buf.chars().peekable());
     }
 
-    pub fn tokenize(&mut self) {
-        let mut lexer = self.buf.chars().peekable();
-        while let Some(c) = lexer.next() {
-            match c {
-                '+' | '-' | '*' | '/' | '^' | '=' => self.tokens.push(Operator(c)),
-				'a' ..= 'z' | 'A' ..= 'Z' => self.tokens.push(Identifier(get_identifier(&mut lexer, c))),
-                '0' ..= '9' => self.tokens.push(Number(get_number(&mut lexer, c))),
-                '(' | ')' => self.tokens.push(Paren(c)),
-				c if c.is_whitespace() => {},
-                _ => panic!("Unexpected char: {}", c)
-            }
-        }
-    }
+    // pub fn tokenize(&mut self) {
+    //     let mut lexer = self.buf.chars().peekable();
+    //     while let Some(c) = lexer.next() {
+    //         match c {
+    //             '+' | '-' | '*' | '/' | '^' | '=' => self.tokens.push(Operator(c)),
+	// 			'a' ..= 'z' | 'A' ..= 'Z' => self.tokens.push(Identifier(get_identifier(&mut lexer, c))),
+    //             '0' ..= '9' => self.tokens.push(Number(get_number(&mut lexer, c))),
+    //             '(' | ')' => self.tokens.push(Paren(c)),
+	// 			c if c.is_whitespace() => {},
+    //             _ => panic!("Unexpected char: {}", c)
+    //         }
+    //     }
+    // }
 
-	pub fn parse(&mut self) {
-		let mut tokens = self.tokens.iter().peekable();
-		let mut tree : Vec<Node> = Vec::new();
-		while let Some(token) = tokens.next() {
-			match token {
-				Number(num) => println!("number"),
-				Operator('+') | Operator('-') => println!("operator"),
-				_ => ()
-			};
+	// pub fn parse(&mut self) {
+	// 	let mut tokens = self.tokens.iter().peekable();
+	// 	let mut tree : Vec<Node> = Vec::new();
+	// 	while let Some(token) = tokens.next() {
+	// 		match token {
+	// 			Number(num) => println!("number"),
+	// 			Operator('+') | Operator('-') => println!("operator"),
+	// 			_ => ()
+	// 		};
 
-			tree.push( Node {
-				token: token,
-				children: Vec::new()
-			});
+	// 		tree.push( Node {
+	// 			token: token,
+	// 			children: Vec::new()
+	// 		});
 
-		}
-		println!("{:#?}", tree);
-	}
+	// 	}
+	// 	println!("{:#?}", tree);
+	// }
 
-    pub fn print(&mut self) {
-        // println!("{}", self.buf);
-        println!("{:?}", self.tokens);
-    }
+    // pub fn print(&mut self) {
+    //     // println!("{}", self.buf);
+    //     println!("{:?}", self.tokens);
+    // }
 }
 
 fn get_number<I>(lexer: &mut Peekable<I>, c: char) -> f64
