@@ -10,11 +10,24 @@ pub enum Token {
     Paren(char)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node<'a> {
 	token: Option<&'a Token>,
 	children: Vec<Node<'a>>
 }
+
+// impl<'a> fmt::Display for Node<'a> {
+// 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+// 		match self.token {
+// 			Some(token) => write!(f, "Token: {:?}\n", token),
+// 			None => write!(f, "Token: None\n")
+// 		};
+// 		for child in &self.children {
+// 			write!(f, "children:\n\t{}", child);
+// 		}
+// 		write!(f, "")
+// 	}
+// }
 
 #[derive(Debug, Default)]
 pub struct Computor {
@@ -42,50 +55,72 @@ impl<'a> Computor {
 		tokens
     }
 
-	fn parse_recursive<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
+	fn parse_expression<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
-		if let Some(token) = tokens.next() {
-			let mut new_node = Node {
-				token: Some(token),
-				children: vec![]
-			};
-			match token {
-				Token::Operator(op) => println!("{:?}, {}", new_node, op),
-				Token::Number(num) => println!("{:?}, {}", new_node, num),
-				Token::Identifier(var) => println!("{:?}, {}", new_node, var),
-				_ => ()
+		// let a = self.parse_expression(tokens);
+		// loop {
+		// 	let token = tokens.next();
+		// 	match token {
+		// 		Some(Token::Operator(_)) => {
+		// 			let b = self.parse_expression(tokens);
+		// 			let a = Some(Node {
+		// 				token: token,
+		// 				children: vec![a.unwrap(), b.unwrap()]
+		// 			});
+		// 		},
+		// 		_ => return a
+		// 	}
+		// }
+
+		let lhs = self.parse_term(tokens);
+		let token = tokens.next();
+		match token {
+			Some(Token::Operator('+')) | Some(Token::Operator('-')) => {
+				let rhs = self.parse_expression(tokens);
+				Some(Node {
+					token: token,
+					children: vec![lhs.unwrap(), rhs.unwrap()]
+				})
 			}
-			if let Some(child) = self.parse_recursive(tokens) {
-				new_node.children.push(child);
-			}
-			return Some(new_node);
+			_ => lhs
 		}
-		None
+	}
+
+	fn parse_term<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
+	where I: Iterator<Item = &'a Token> {
+		let lhs = self.parse_factor(tokens);
+		let token = tokens.next();
+		match token {
+			Some(Token::Operator('*')) | Some(Token::Operator('/')) => {
+				let rhs = self.parse_term(tokens);
+				Some(Node {
+					token: token,
+					children: vec![lhs.unwrap(), rhs.unwrap()]
+				})
+			}
+			_ => lhs
+		}
+	}
+
+	fn parse_factor<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
+	where I: Iterator<Item = &'a Token> {
+		let token = tokens.next();
+		match token {
+			Some(Token::Number(_)) => Some(Node {token: token, children: vec![]}),
+			Some(Token::Identifier(_)) => Some(Node {token: token, children: vec![]}),
+			_ => None
+		}
 	}
 
 	pub fn parse(&mut self) {
 		let tokens = self.tokenize();
-		let mut tree = Node {
-			token: None,
-			children: vec![]
-		};
-		if let Some(child) = self.parse_recursive(&mut tokens.iter().peekable()) {
-			tree.children.push(child);
-		}
+		println!("{:?}", tokens);
+		let tree = self.parse_expression(&mut tokens.iter().peekable());
+		
 		println!("{:#?}", tree);
 	}
 
-    // pub fn print(&mut self) {
-    //     // println!("{}", self.buf);
-    //     println!("{:?}", self.tokens);
-    // }
 }
-
-// impl fmt::Display for Computor {
-// 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-// 		write!(f, )
-// 	}
-// }
 
 fn get_number<I>(lexer: &mut Peekable<I>, c: char) -> f64
 where I: Iterator<Item = char>, {
