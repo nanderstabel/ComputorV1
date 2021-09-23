@@ -11,7 +11,7 @@ pub enum Token {
 
 #[derive(Debug, Clone)]
 pub struct Node<'a> {
-	token: Option<&'a Token>,
+	token: &'a Token,
 	children: Vec<Node<'a>>
 }
 
@@ -49,7 +49,7 @@ impl<'a> Computor {
 			Some(Operator('=')) => {
 				tokens.next();
 				let rhs = self.equation(tokens);
-				Some(Node {token: Some(&Operator('=')), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: &Operator('='), children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
@@ -64,7 +64,7 @@ impl<'a> Computor {
 				Some(Operator('+')) | Some(Operator('-')) => {
 					tokens.next();
 					let rhs = self.term(tokens);
-					token = Some(Node {token: Some(&Operator('+')), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: &Operator('+'), children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -81,7 +81,7 @@ impl<'a> Computor {
 				Some(Operator('*')) | Some(Operator('/')) => {
 					tokens.next();
 					let rhs = self.factor(tokens);
-					token = Some(Node {token: Some(&Operator('*')), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: &Operator('*'), children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -97,7 +97,7 @@ impl<'a> Computor {
 			Some(Operator('^')) => {
 				tokens.next();
 				let rhs = self.factor(tokens);
-				Some(Node {token: Some(&Operator('^')), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: &Operator('^'), children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
@@ -107,8 +107,8 @@ impl<'a> Computor {
 	where I: Iterator<Item = &'a Token> {
 		let token = tokens.next();
 		match token {
-			Some(Number(_)) => Some(Node {token: token, children: vec![]}),
-			Some(Identifier(_)) => Some(Node {token: token, children: vec![]}),
+			Some(Number(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
+			Some(Identifier(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
 			_ => None
 		}
 	}
