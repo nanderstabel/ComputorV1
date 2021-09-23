@@ -117,6 +117,10 @@ impl<'a> Computor {
 		match token {
 			Some(Number(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
 			Some(Identifier(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
+			Some(Operator('-')) => {
+				let child = self.factor(tokens);
+				Some(Node {token: token.unwrap(), children: vec![child.unwrap()]})
+			},
 			_ => None
 		}
 	}
