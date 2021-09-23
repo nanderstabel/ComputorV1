@@ -15,6 +15,15 @@ pub struct Node<'a> {
 	children: Vec<Node<'a>>
 }
 
+impl Node<'_> {
+	fn reduce(&mut self) {
+		match self.token {
+			&Operator('=') => println!("Works"),
+			_ => ()
+		}
+	}
+}
+
 #[derive(Debug, Default)]
 pub struct Computor {
     buf: String,
@@ -112,9 +121,11 @@ impl<'a> Computor {
 	pub fn parse(&mut self) {
 		let tokens = self.tokenize();
 		println!("{:?}", tokens);
-		let tree = self.equation(&mut tokens.iter().peekable());
+		let mut tree = self.equation(&mut tokens.iter().peekable()).unwrap();
 		
 		println!("{:#?}", tree);
+
+		tree.reduce();
 	}
 
 }
