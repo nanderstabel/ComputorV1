@@ -41,6 +41,20 @@ impl<'a> Computor {
 		tokens
     }
 
+	fn equation<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
+	where I: Iterator<Item = &'a Token> {
+		let lhs = self.expression(tokens);
+		let peek = tokens.peek();
+		match peek {
+			Some(Operator('=')) => {
+				tokens.next();
+				let rhs = self.equation(tokens);
+				Some(Node {token: Some(&Operator('=')), children: vec![lhs.unwrap(), rhs.unwrap()]})
+			},
+			_ => lhs
+		}
+	}
+
 	fn expression<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
 		let mut token = self.term(tokens);
@@ -102,7 +116,7 @@ impl<'a> Computor {
 	pub fn parse(&mut self) {
 		let tokens = self.tokenize();
 		println!("{:?}", tokens);
-		let tree = self.expression(&mut tokens.iter().peekable());
+		let tree = self.equation(&mut tokens.iter().peekable());
 		
 		println!("{:#?}", tree);
 	}
