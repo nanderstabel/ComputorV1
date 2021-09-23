@@ -43,13 +43,11 @@ impl<'a> Computor {
 
 	fn expression<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
-		println!("parse expression");
 		let mut token = self.term(tokens);
 		loop {
 			let peek = tokens.peek();
 			match peek {
 				Some(Operator('+')) | Some(Operator('-')) => {
-					println!("current peek: {:?}", peek);
 					tokens.next();
 					let rhs = self.term(tokens);
 					token = Some(Node {token: Some(&Operator('+')), children: vec![token.unwrap(), rhs.unwrap()]});
@@ -62,13 +60,11 @@ impl<'a> Computor {
 
 	fn term<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
-		println!("parse term");
 		let mut token = self.factor(tokens);
 		loop {
 			let peek = tokens.peek();
 			match peek {
 				Some(Operator('*')) | Some(Operator('/')) => {
-					println!("current peek: {:?}", peek);
 					tokens.next();
 					let rhs = self.factor(tokens);
 					token = Some(Node {token: Some(&Operator('*')), children: vec![token.unwrap(), rhs.unwrap()]});
@@ -81,12 +77,10 @@ impl<'a> Computor {
 
 	fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
-		println!("parse factor");
 		let lhs = self.primary(tokens);
 		let peek = tokens.peek();
 		match peek {
 			Some(Operator('^')) => {
-				println!("current peek: {:?}", peek);
 				tokens.next();
 				let rhs = self.factor(tokens);
 				Some(Node {token: Some(&Operator('^')), children: vec![lhs.unwrap(), rhs.unwrap()]})
@@ -97,9 +91,7 @@ impl<'a> Computor {
 
 	fn primary<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
-		println!("parse primary");
 		let token = tokens.next();
-		println!("current token: {:?}", token);
 		match token {
 			Some(Number(_)) => Some(Node {token: token, children: vec![]}),
 			Some(Identifier(_)) => Some(Node {token: token, children: vec![]}),
