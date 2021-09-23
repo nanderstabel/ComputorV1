@@ -5,9 +5,6 @@
 // 92
 // https://app.diagrams.net/#G14rzgULr5arR4jENATQecRsNx08YcXdhu
 
-// https://petermalmgren.com/three-rust-parsers/
-
-
 use computorv1::Computor;
 use std::env;
 
