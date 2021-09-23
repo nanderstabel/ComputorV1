@@ -18,8 +18,11 @@ pub struct Node<'a> {
 impl Node<'_> {
 	fn reduce(&mut self) {
 		match self.token {
-			&Operator('=') => println!("Works"),
+			&Operator('=') => {
+
+			},
 			_ => ()
+			
 		}
 	}
 }
