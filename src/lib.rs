@@ -44,12 +44,11 @@ impl<'a> Computor {
 	fn equation<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
 		let lhs = self.expression(tokens);
-		let peek = tokens.peek();
-		match peek {
+		match tokens.peek() {
 			Some(Operator('=')) => {
-				tokens.next();
+				let token = tokens.next();
 				let rhs = self.equation(tokens);
-				Some(Node {token: &Operator('='), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: token.unwrap(), children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
@@ -59,12 +58,11 @@ impl<'a> Computor {
 	where I: Iterator<Item = &'a Token> {
 		let mut token = self.term(tokens);
 		loop {
-			let peek = tokens.peek();
-			match peek {
+			match tokens.peek() {
 				Some(Operator('+')) | Some(Operator('-')) => {
-					tokens.next();
+					let parent = tokens.next();
 					let rhs = self.term(tokens);
-					token = Some(Node {token: &Operator('+'), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: parent.unwrap(), children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -76,12 +74,11 @@ impl<'a> Computor {
 	where I: Iterator<Item = &'a Token> {
 		let mut token = self.factor(tokens);
 		loop {
-			let peek = tokens.peek();
-			match peek {
+			match tokens.peek() {
 				Some(Operator('*')) | Some(Operator('/')) => {
-					tokens.next();
+					let parent = tokens.next();
 					let rhs = self.factor(tokens);
-					token = Some(Node {token: &Operator('*'), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: parent.unwrap(), children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -92,12 +89,11 @@ impl<'a> Computor {
 	fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
 	where I: Iterator<Item = &'a Token> {
 		let lhs = self.primary(tokens);
-		let peek = tokens.peek();
-		match peek {
+		match tokens.peek() {
 			Some(Operator('^')) => {
-				tokens.next();
+				let parent = tokens.next();
 				let rhs = self.factor(tokens);
-				Some(Node {token: &Operator('^'), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: parent.unwrap(), children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
