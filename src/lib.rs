@@ -48,7 +48,7 @@ impl<'a> Computor {
                 '(' | ')' => tokens.push(Paren(c)),
 				c if c.is_whitespace() => {},
                 _ => panic!("Unexpected char: {}", c)
-            }
+    		}
         }
 		tokens
     }
@@ -58,9 +58,9 @@ impl<'a> Computor {
 		let lhs = self.expression(tokens);
 		match tokens.peek() {
 			Some(Operator('=')) => {
-				let token = tokens.next();
+				let token = tokens.next().unwrap();
 				let rhs = self.equation(tokens);
-				Some(Node {token: token.unwrap(), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: token, children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
@@ -72,9 +72,9 @@ impl<'a> Computor {
 		loop {
 			match tokens.peek() {
 				Some(Operator('+')) | Some(Operator('-')) => {
-					let parent = tokens.next();
+					let parent = tokens.next().unwrap();
 					let rhs = self.term(tokens);
-					token = Some(Node {token: parent.unwrap(), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: parent, children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -88,9 +88,9 @@ impl<'a> Computor {
 		loop {
 			match tokens.peek() {
 				Some(Operator('*')) | Some(Operator('/')) => {
-					let parent = tokens.next();
+					let parent = tokens.next().unwrap();
 					let rhs = self.factor(tokens);
-					token = Some(Node {token: parent.unwrap(), children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node {token: parent, children: vec![token.unwrap(), rhs.unwrap()]});
 				},
 				_ => break
 			}
@@ -103,9 +103,9 @@ impl<'a> Computor {
 		let lhs = self.primary(tokens);
 		match tokens.peek() {
 			Some(Operator('^')) => {
-				let parent = tokens.next();
+				let parent = tokens.next().unwrap();
 				let rhs = self.factor(tokens);
-				Some(Node {token: parent.unwrap(), children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node {token: parent, children: vec![lhs.unwrap(), rhs.unwrap()]})
 			},
 			_ => lhs
 		}
