@@ -16,10 +16,15 @@ pub struct Node<'a> {
 }
 
 impl Node<'_> {
+	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
+		Node { token: token, children: children }
+	}
+
+
 	fn reduce(&mut self) {
 		match self.token {
 			&Operator('=') => {
-
+				// let 
 			},
 			_ => ()
 			
@@ -60,7 +65,7 @@ impl<'a> Computor {
 			Some(Operator('=')) => {
 				let token = tokens.next().unwrap();
 				let rhs = self.equation(tokens);
-				Some(Node {token: token, children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node::new(token, vec![lhs.unwrap(), rhs.unwrap()]))
 			},
 			_ => lhs
 		}
@@ -74,7 +79,7 @@ impl<'a> Computor {
 				Some(Operator('+')) | Some(Operator('-')) => {
 					let parent = tokens.next().unwrap();
 					let rhs = self.term(tokens);
-					token = Some(Node {token: parent, children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node::new(parent, vec![token.unwrap(), rhs.unwrap()]));
 				},
 				_ => break
 			}
@@ -90,7 +95,7 @@ impl<'a> Computor {
 				Some(Operator('*')) | Some(Operator('/')) => {
 					let parent = tokens.next().unwrap();
 					let rhs = self.factor(tokens);
-					token = Some(Node {token: parent, children: vec![token.unwrap(), rhs.unwrap()]});
+					token = Some(Node::new(parent, vec![token.unwrap(), rhs.unwrap()]));
 				},
 				_ => break
 			}
@@ -105,7 +110,7 @@ impl<'a> Computor {
 			Some(Operator('^')) => {
 				let parent = tokens.next().unwrap();
 				let rhs = self.factor(tokens);
-				Some(Node {token: parent, children: vec![lhs.unwrap(), rhs.unwrap()]})
+				Some(Node::new(parent, vec![lhs.unwrap(), rhs.unwrap()]))
 			},
 			_ => lhs
 		}
@@ -115,11 +120,11 @@ impl<'a> Computor {
 	where I: Iterator<Item = &'a Token> {
 		let token = tokens.next();
 		match token {
-			Some(Number(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
-			Some(Identifier(_)) => Some(Node {token: token.unwrap(), children: vec![]}),
+			Some(Number(_)) => Some(Node::new(token.unwrap(), vec![])),
+			Some(Identifier(_)) => Some(Node::new(token.unwrap(), vec![])),
 			Some(Operator('-')) => {
 				let child = self.factor(tokens);
-				Some(Node {token: token.unwrap(), children: vec![child.unwrap()]})
+				Some(Node::new(token.unwrap(), vec![child.unwrap()]))
 			},
 			_ => None
 		}
