@@ -20,15 +20,26 @@ impl Node<'_> {
 		Node { token: token, children: children }
 	}
 
+	fn traverse(&mut self) {
+		match self.token {
+			&Operator('+') | &Operator('-') => {
+				println!("{:?}", self.token);
+				for child in &mut self.children {
+					child.traverse();
+				}
+			},
+			_ => println!("{:?}", self.token)
+		}
+	}
 
 	fn reduce(&mut self) {
-		match self.token {
-			&Operator('=') => {
-				// let 
-			},
-			_ => ()
-			
-		}
+		let mut rhs = self.children.pop().unwrap();
+		let mut lhs = self.children.pop().unwrap();
+		rhs.traverse();
+		self.children.push(rhs);
+		self.children.push(Node::new(&Number(0.0), vec![]));
+
+		// println!("{:#?}\n\n\n", rhs);
 	}
 }
 
@@ -132,12 +143,12 @@ impl<'a> Computor {
 
 	pub fn parse(&mut self) {
 		let tokens = self.tokenize();
-		println!("{:?}", tokens);
+		println!("{:?}\n\n", tokens);
 		let mut tree = self.equation(&mut tokens.iter().peekable()).unwrap();
 		
+		tree.reduce();
 		println!("{:#?}", tree);
 
-		tree.reduce();
 	}
 
 }
