@@ -20,26 +20,39 @@ impl Node<'_> {
 		Node { token: token, children: children }
 	}
 
-	fn traverse(&mut self) {
+	fn traverse<'a>(&mut self, node: &'a Node<'a>) -> Option<Node<'a>> {
 		match self.token {
 			&Operator('+') | &Operator('-') => {
-				println!("{:?}", self.token);
+				println!("1: {:?}", self.token);
 				for child in &mut self.children {
-					child.traverse();
+					child.traverse(node);
 				}
 			},
-			_ => println!("{:?}", self.token)
+			_ => println!("2: {:?}", self.token)
 		}
+		None
+	}
+
+	fn test<'a>(&mut self, node: Node<'a>) -> Node<'a> {
+		let temp = Node::new(&Operator('-'), vec![node]);
+		println!("test: {:#?}", temp);
+		temp
 	}
 
 	fn reduce(&mut self) {
-		let mut rhs = self.children.pop().unwrap();
-		let mut lhs = self.children.pop().unwrap();
-		rhs.traverse();
-		self.children.push(rhs);
-		self.children.push(Node::new(&Number(0.0), vec![]));
+		match self.token {
+			&Operator('=') => {
+				let mut rhs = self.children.pop().unwrap();
+				let lhs = self.children.pop().unwrap();
+				rhs.traverse(&lhs);
+				rhs.test(lhs);
+				self.children.push(rhs);
+				self.children.push(Node::new(&Number(0.0), vec![]));
 
-		// println!("{:#?}\n\n\n", rhs);
+				// println!("{:#?}\n\n\n", lhs);
+			},
+			_ => ()
+		}
 	}
 }
 
