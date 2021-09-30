@@ -20,6 +20,8 @@ impl Node<'_> {
 	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
 		Node { token: token, children: children }
 	}
+
+
 }
 
 #[derive(Debug, Default)]
@@ -142,16 +144,14 @@ impl<'a> Computor {
 	// 	}
 	// }
 
-	fn test(&mut self, lhs: Node<'a>, mut rhs: Node<'a>) -> (Node<'a>, Node<'a>) {
-		println!("test");
-		let (i, j) = (Node::new(&Number(99.0), vec![]), Node::new(&Number(99.0), vec![]));
-		match rhs.token {
-			&Operator('+') | &Operator('-') => {
-				let childr = rhs.children.pop().unwrap();
-				let (i, j) = self.test(lhs, childr);
-				(Node::new(&Operator('-'), vec![i, j]), Node::new(&Number(0.0), vec![]))
-			},
-			_ => (Node::new(&Operator('-'), vec![lhs, rhs]), j)
+	fn test(&mut self, rhs: &'a mut Node<'a>) -> Option<Node<'a>> {
+		loop {
+			match rhs.token {
+				&Operator('+') | &Operator('-') => {
+					return None
+				},
+				_ => return None
+			}
 		}
 	}
 
@@ -161,10 +161,12 @@ impl<'a> Computor {
 				let mut rhs = tree.children.pop().unwrap();
 				let lhs = tree.children.pop().unwrap();
 				// rhs.traverse(&lhs);
-				let (lhs, rhs) = self.test(lhs, rhs);
-				tree.children.extend_from_slice(&[lhs, rhs]);
+				while let Some(node) = self.test(&mut rhs) {
+					println!("node: {:?}", node);
+				}
 
-				// println!("{:#?}\n\n\n", tree);
+
+				tree.children.extend_from_slice(&[lhs, Node::new(&Number(0.0), vec![])]);
 			},
 			_ => ()
 		}
