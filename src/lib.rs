@@ -1,6 +1,7 @@
 use std::iter::Peekable;
 use Token::*;
 
+
 #[derive(Debug, Clone)]
 pub enum Token {
     Operator(char),
@@ -18,41 +19,6 @@ pub struct Node<'a> {
 impl Node<'_> {
 	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
 		Node { token: token, children: children }
-	}
-
-	fn traverse<'a>(&mut self, node: &'a Node<'a>) -> Option<Node<'a>> {
-		match self.token {
-			&Operator('+') | &Operator('-') => {
-				println!("1: {:?}", self.token);
-				for child in &mut self.children {
-					child.traverse(node);
-				}
-			},
-			_ => println!("2: {:?}", self.token)
-		}
-		None
-	}
-
-	fn test<'a>(&mut self, node: Node<'a>) -> Node<'a> {
-		let temp = Node::new(&Operator('-'), vec![node]);
-		println!("test: {:#?}", temp);
-		temp
-	}
-
-	fn reduce(&mut self) {
-		match self.token {
-			&Operator('=') => {
-				let mut rhs = self.children.pop().unwrap();
-				let lhs = self.children.pop().unwrap();
-				rhs.traverse(&lhs);
-				rhs.test(lhs);
-				self.children.push(rhs);
-				self.children.push(Node::new(&Number(0.0), vec![]));
-
-				// println!("{:#?}\n\n\n", lhs);
-			},
-			_ => ()
-		}
 	}
 }
 
@@ -159,9 +125,50 @@ impl<'a> Computor {
 		println!("{:?}\n\n", tokens);
 		let mut tree = self.equation(&mut tokens.iter().peekable()).unwrap();
 		
-		tree.reduce();
+		tree = self.reduce(tree);
 		println!("{:#?}", tree);
 
+	}
+
+	// fn traverse<'a>(&mut self, node: Node) {
+	// 	match self.token {
+	// 		&Operator('+') | &Operator('-') => {
+	// 			println!("1: {:?}", self.token);
+	// 			for child in &mut self.children {
+	// 				child.traverse(node);
+	// 			}
+	// 		},
+	// 		_ => println!("2: {:?}", self.token)
+	// 	}
+	// }
+
+	fn test(&mut self, lhs: Node<'a>, mut rhs: Node<'a>) -> (Node<'a>, Node<'a>) {
+		println!("test");
+		let (i, j) = (Node::new(&Number(99.0), vec![]), Node::new(&Number(99.0), vec![]));
+		match rhs.token {
+			&Operator('+') | &Operator('-') => {
+				let childr = rhs.children.pop().unwrap();
+				let (i, j) = self.test(lhs, childr);
+				(Node::new(&Operator('-'), vec![i, j]), Node::new(&Number(0.0), vec![]))
+			},
+			_ => (Node::new(&Operator('-'), vec![lhs, rhs]), j)
+		}
+	}
+
+	fn reduce(&mut self, mut tree: Node<'a>) -> Node<'a> {
+		match tree.token {
+			&Operator('=') => {
+				let mut rhs = tree.children.pop().unwrap();
+				let lhs = tree.children.pop().unwrap();
+				// rhs.traverse(&lhs);
+				let (lhs, rhs) = self.test(lhs, rhs);
+				tree.children.extend_from_slice(&[lhs, rhs]);
+
+				// println!("{:#?}\n\n\n", tree);
+			},
+			_ => ()
+		}
+		tree
 	}
 
 }
