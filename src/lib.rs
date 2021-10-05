@@ -20,8 +20,6 @@ impl Node<'_> {
 	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
 		Node { token: token, children: children }
 	}
-
-
 }
 
 #[derive(Debug, Default)]
@@ -144,13 +142,20 @@ impl<'a> Computor {
 	// 	}
 	// }
 
-	fn test(&mut self, rhs: &'a mut Node<'a>) -> Option<Node<'a>> {
+	fn test(&mut self, rhs: &'a mut Node) -> Option<Node<'a>> {
 		loop {
+			println!("{:?}", rhs);
 			match rhs.token {
 				&Operator('+') | &Operator('-') => {
+					for child in &mut rhs.children {
+						self.test(child);
+					}
 					return None
 				},
-				_ => return None
+				_ => {
+					rhs.children.push(Node::new(&Number(42.0), vec![]));
+					return None
+				}
 			}
 		}
 	}
@@ -165,7 +170,7 @@ impl<'a> Computor {
 					println!("node: {:?}", node);
 				}
 
-
+				println!("\n\n\n\nrhs: {:#?}\n\n\n\n", rhs);
 				tree.children.extend_from_slice(&[lhs, Node::new(&Number(0.0), vec![])]);
 			},
 			_ => ()
