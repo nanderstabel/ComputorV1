@@ -18,7 +18,7 @@ pub struct Node<'a> {
 
 impl Node<'_> {
 	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
-		Node { token: token, children: children }
+		Node { token, children }
 	}
 }
 
@@ -150,11 +150,9 @@ impl<'a> Computor {
 					for child in &mut rhs.children {
 						self.test(child);
 					}
-					return None
 				},
 				_ => {
 					rhs.children.push(Node::new(&Number(42.0), vec![]));
-					return None
 				}
 			}
 		}
