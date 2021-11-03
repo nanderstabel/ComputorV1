@@ -150,9 +150,11 @@ impl<'a> Computor {
 					for child in &mut rhs.children {
 						self.test(child);
 					}
+					return None
 				},
 				_ => {
 					rhs.children.push(Node::new(&Number(42.0), vec![]));
+					return None
 				}
 			}
 		}
