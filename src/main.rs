@@ -1,20 +1,18 @@
-
-
 // https://petermalmgren.com/three-rust-parsers/
 // https://mail.google.com/mail/u/0/#inbox/KtbxLthqCqfmTnHQpDJCWDbpmMKpWVvgsq?projector=1
 // 92
 // https://app.diagrams.net/#G14rzgULr5arR4jENATQecRsNx08YcXdhu
 
-use computorv1::Computor;
-use std::env;
+use anyhow::{Context, Result};
+use computorv1::*;
 
-fn main () {
-    let mut computor = Computor::default();
+fn main() -> Result<()> {
+    let mut parser = Parser::new();
+    let tree = parser
+        .parse("3 - (4 - 5) = 0")
+        .context("Unable to parse")?;
 
+    println!("{:#?}", tree);
 
-    for arg in env::args().skip(1) {
-        computor.ingest(&arg);
-		computor.parse();
-    }
-
+    Ok(())
 }

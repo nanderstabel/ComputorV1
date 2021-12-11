@@ -1,185 +1,192 @@
+use anyhow::{anyhow, Context, Result};
 use std::iter::Peekable;
 use Token::*;
 
-#[derive(Debug, Clone)]
+macro_rules! node {
+    ($token:expr) => {
+        node!($token, Box::new(None), Box::new(None))
+    };
+    ($token:expr, $left:expr) => {
+        node!($token, $left, Box::new(None))
+    };
+    ($token:expr, $left:expr, $right:expr) => {
+        Box::new(Some(Node::new($token, $left, $right)))
+    };
+}
+
+pub type Branch = Box<Option<Node>>;
+
+#[derive(Debug, Copy, Clone)]
 pub enum Token {
     Operator(char),
+    Parenthesis(char),
     Number(f64),
-	Identifier(String),
-    Paren(char)
+    Identifier(char),
 }
 
-#[derive(Debug, Clone)]
-pub struct Node<'a> {
-	token: &'a Token,
-	children: Vec<Node<'a>>
+#[derive(Debug)]
+pub struct Node {
+    token: Token,
+    left: Branch,
+    right: Branch,
 }
 
-impl Node<'_> {
-	fn new<'a>(token: &'a Token, children: Vec<Node<'a>>) -> Node<'a> {
-		Node { token: token, children: children }
-	}
-
-	fn traverse(&mut self) {
-		match self.token {
-			&Operator('+') | &Operator('-') => {
-				println!("{:?}", self.token);
-				for child in &mut self.children {
-					child.traverse();
-				}
-			},
-			_ => println!("{:?}", self.token)
-		}
-	}
-
-	fn reduce(&mut self) {
-		let mut rhs = self.children.pop().unwrap();
-		let mut lhs = self.children.pop().unwrap();
-		rhs.traverse();
-		self.children.push(rhs);
-		self.children.push(Node::new(&Number(0.0), vec![]));
-
-		// println!("{:#?}\n\n\n", rhs);
-	}
+impl Node {
+    pub fn new(token: Token, left: Branch, right: Branch) -> Node {
+        Node { token, left, right }
+    }
 }
 
-#[derive(Debug, Default)]
-pub struct Computor {
-    buf: String,
-}
+pub struct Parser;
 
-impl<'a> Computor {
-    pub fn ingest(&mut self, buf: &str) {
-        self.buf = buf.to_string();
+impl<'a> Parser {
+    pub fn new() -> Self {
+        Parser {}
     }
 
-    pub fn tokenize(&mut self) -> Vec<Token> {
-        let mut lexer = self.buf.chars().peekable();
-		let mut tokens: Vec<Token> = vec![];
+    fn get_number<I>(&mut self, lexer: &mut Peekable<I>, c: char) -> Result<f64>
+    where
+        I: Iterator<Item = char>,
+    {
+        let mut number = c.to_string();
+        let mut is_float = false;
+        while let Some(c) = lexer.peek() {
+            match c {
+                '0'..='9' => number.push(*c),
+                '.' if !is_float => {
+                    number.push(*c);
+                    is_float = true;
+                }
+                _ => break,
+            }
+            lexer.next();
+        }
+        number.parse().context("PARSE_ERROR")
+    }
+
+    fn tokenize(&mut self, input: &str) -> Result<Vec<Token>> {
+        let mut lexer = input.chars().peekable();
+        let mut tokenlist: Vec<Token> = Vec::new();
         while let Some(c) = lexer.next() {
             match c {
-                '+' | '-' | '*' | '/' | '^' | '=' => tokens.push(Operator(c)),
-				'a' ..= 'z' | 'A' ..= 'Z' => tokens.push(Identifier(get_identifier(&mut lexer, c))),
-                '0' ..= '9' => tokens.push(Number(get_number(&mut lexer, c))),
-                '(' | ')' => tokens.push(Paren(c)),
-				c if c.is_whitespace() => {},
-                _ => panic!("Unexpected char: {}", c)
-    		}
+                '(' | ')' => tokenlist.push(Parenthesis(c)),
+                '+' | '-' | '*' | '/' | '^' | '=' => tokenlist.push(Operator(c)),
+                'A'..='Z' => tokenlist.push(Identifier(c)),
+                '0'..='9' => tokenlist.push(Number(self.get_number(&mut lexer, c)?)),
+                //TODO:further implement identifiers
+                c if c.is_whitespace() => {}
+                _ => return Err(anyhow!("{}{}", "UNEXP_CHAR_ERR", c)),
+            }
         }
-		tokens
+        Ok(tokenlist)
     }
 
-	fn equation<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
-	where I: Iterator<Item = &'a Token> {
-		let lhs = self.expression(tokens);
-		match tokens.peek() {
-			Some(Operator('=')) => {
-				let token = tokens.next().unwrap();
-				let rhs = self.equation(tokens);
-				Some(Node::new(token, vec![lhs.unwrap(), rhs.unwrap()]))
-			},
-			_ => lhs
-		}
-	}
+    fn equation<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    where
+        I: Iterator<Item = &'a Token>,
+    {
+        let lhs = self.expression(tokenlist);
+        match tokenlist.next() {
+            Some(Operator('=')) => {
+                let rhs = self.expression(tokenlist);
+                match tokenlist.next() {
+                    None => Ok(node!(Operator('-'), lhs?, rhs?)),
+                    Some(t) => Err(anyhow!("{}{:?}", "UNEXP_TOKEN_ERR", t)),
+                }
+            }
+            _ => Err(anyhow!("MISSING_IMPLICATOR_ERR")),
+        }
+    }
 
-	fn expression<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
-	where I: Iterator<Item = &'a Token> {
-		let mut token = self.term(tokens);
-		loop {
-			match tokens.peek() {
-				Some(Operator('+')) | Some(Operator('-')) => {
-					let parent = tokens.next().unwrap();
-					let rhs = self.term(tokens);
-					token = Some(Node::new(parent, vec![token.unwrap(), rhs.unwrap()]));
-				},
-				_ => break
-			}
-		};
-		token
-	}
+    fn expression<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    where
+        I: Iterator<Item = &'a Token>,
+    {
+        let mut node = self.term(tokenlist);
+        while let Some(Operator('+')) | Some(Operator('-')) = tokenlist.peek() {
+            node = Ok(node!(
+                *tokenlist.next().context("UNEXP_END_ERR")?,
+                node?,
+                self.term(tokenlist)?
+            ));
+        }
+        node
+    }
 
-	fn term<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
-	where I: Iterator<Item = &'a Token> {
-		let mut token = self.factor(tokens);
-		loop {
-			match tokens.peek() {
-				Some(Operator('*')) | Some(Operator('/')) => {
-					let parent = tokens.next().unwrap();
-					let rhs = self.factor(tokens);
-					token = Some(Node::new(parent, vec![token.unwrap(), rhs.unwrap()]));
-				},
-				_ => break
-			}
-		};
-		token
-	}
+    fn term<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    where
+        I: Iterator<Item = &'a Token>,
+    {
+        let mut node = self.factor(tokenlist);
+        while let Some(Operator('*')) | Some(Operator('/')) = tokenlist.peek() {
+            node = Ok(node!(
+                *tokenlist.next().context("UNEXP_END_ERR")?,
+                node?,
+                self.factor(tokenlist)?
+            ));
+        }
+        node
+    }
 
-	fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
-	where I: Iterator<Item = &'a Token> {
-		let lhs = self.primary(tokens);
-		match tokens.peek() {
-			Some(Operator('^')) => {
-				let parent = tokens.next().unwrap();
-				let rhs = self.factor(tokens);
-				Some(Node::new(parent, vec![lhs.unwrap(), rhs.unwrap()]))
-			},
-			_ => lhs
-		}
-	}
+    fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Result<Branch>
+    where
+        I: Iterator<Item = &'a Token>,
+    {
+        let lhs = self.primary(tokens);
+        match tokens.peek() {
+            Some(Operator('^')) => {
+                let parent = tokens.next().context("INSERT ERROR")?;
+                let rhs = self.factor(tokens);
+                Ok(node!(*parent, lhs?, rhs?))
+            }
+            _ => lhs,
+        }
+    }
 
-	fn primary<I>(&mut self, tokens: &mut Peekable<I>) -> Option<Node<'a>>
-	where I: Iterator<Item = &'a Token> {
-		let token = tokens.next();
-		match token {
-			Some(Number(_)) => Some(Node::new(token.unwrap(), vec![])),
-			Some(Identifier(_)) => Some(Node::new(token.unwrap(), vec![])),
-			Some(Operator('-')) => {
-				let child = self.factor(tokens);
-				Some(Node::new(token.unwrap(), vec![child.unwrap()]))
-			},
-			_ => None
-		}
-	}
+    fn primary<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    where
+        I: Iterator<Item = &'a Token>,
+    {
+        let token = tokenlist.next();
+        match token {
+            Some(Parenthesis('(')) => {
+                let node = self.expression(tokenlist);
+                match tokenlist.next() {
+                    Some(Parenthesis(')')) => node,
+                    _ => Err(anyhow!("MISSING_PAREN_ERR")),
+                }
+            }
+            Some(Operator('!')) => Ok(node!(
+                *token.context("UNEXP_END_ERR")?,
+                self.primary(tokenlist)?
+            )),
+            Some(Identifier(_)) => Ok(node!(*token.context("UNEXP_END_ERR")?)),
+            Some(Number(_)) => Ok(node!(*token.context("UNEXP_END_ERR")?)),
+            _ => Err(anyhow!("UNEXP_END_ERR")),
+        }
+    }
 
-	pub fn parse(&mut self) {
-		let tokens = self.tokenize();
-		println!("{:?}\n\n", tokens);
-		let mut tree = self.equation(&mut tokens.iter().peekable()).unwrap();
-		
-		tree.reduce();
-		println!("{:#?}", tree);
-
-	}
-
-}
-
-fn get_number<I>(lexer: &mut Peekable<I>, c: char) -> f64
-where I: Iterator<Item = char>, {
-	let mut number = c.to_string();
-	let mut is_float = false;
-	while let Some(c) = lexer.peek() {
-		match c {
-			'0' ..= '9' => number.push(*c),
-			'.' if !is_float => {
-				number.push(*c);
-				is_float = true;
-			}
-			_ => break
-		}
-		lexer.next();
-	}
-	number.parse().unwrap()
+    pub fn parse(&mut self, input: &str) -> Result<Branch> {
+        let tokenlist = self.tokenize(input).context("TOKENIZATION_ERR")?;
+        println!("{:?}", tokenlist);
+        let tree = self
+            .equation(&mut tokenlist.iter().peekable())
+            .context("SYNTAX_ERR")?;
+        Ok(tree)
+    }
 }
 
 fn get_identifier<I>(lexer: &mut Peekable<I>, c: char) -> String
-where I: Iterator<Item = char>, {
-	let mut identifier = c.to_string();
-	while let Some(c) = lexer.peek() {
-		match c {
-			'0' ..= '9' | 'a' ..= 'z' | 'A' ..= 'Z' => identifier.push(*c),
-			_ => break
-		}
-		lexer.next();
-	}
-	identifier
+where
+    I: Iterator<Item = char>,
+{
+    let mut identifier = c.to_string();
+    while let Some(c) = lexer.peek() {
+        match c {
+            '0'..='9' | 'a'..='z' | 'A'..='Z' => identifier.push(*c),
+            _ => break,
+        }
+        lexer.next();
+    }
+    identifier
 }
