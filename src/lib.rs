@@ -18,12 +18,13 @@ macro_rules! node {
 
 pub type Branch = Rc<RefCell<Node>>;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Operator(char),
     Parenthesis(char),
     Number(f64),
-    Identifier(char),
+    // Identifier(char),
+    Identifier(String),
 }
 
 #[derive(Debug, Clone)]
@@ -110,6 +111,21 @@ impl<'a> Parser {
         number.parse().context("PARSE_ERROR")
     }
 
+    fn get_identifier<I>(&mut self, lexer: &mut Peekable<I>, c: char) -> Result<String>
+    where
+        I: Iterator<Item = char>,
+    {
+        let mut identifier = c.to_string();
+        while let Some(c) = lexer.peek() {
+            match c {
+                '0'..='9' | 'a'..='z' | 'A'..='Z' => identifier.push(*c),
+                _ => break,
+            }
+            lexer.next();
+        }
+        Ok(identifier)
+    }
+
     fn tokenize(&mut self, input: &str) -> Result<Vec<Token>> {
         let mut lexer = input.chars().peekable();
         let mut tokenlist: Vec<Token> = Vec::new();
@@ -117,9 +133,8 @@ impl<'a> Parser {
             match c {
                 '(' | ')' => tokenlist.push(Parenthesis(c)),
                 '+' | '-' | '*' | '/' | '^' | '=' => tokenlist.push(Operator(c)),
-                'A'..='Z' => tokenlist.push(Identifier(c)),
+                'A'..='Z' => tokenlist.push(Identifier(self.get_identifier(&mut lexer, c)?)),
                 '0'..='9' => tokenlist.push(Number(self.get_number(&mut lexer, c)?)),
-                //TODO:further implement identifiers
                 c if c.is_whitespace() => {}
                 _ => return Err(anyhow!("{}{}", "UNEXP_CHAR_ERR", c)),
             }
@@ -151,7 +166,7 @@ impl<'a> Parser {
         let mut node = self.term(tokenlist);
         while let Some(Operator('+')) | Some(Operator('-')) = tokenlist.peek() {
             node = Ok(node!(
-                *tokenlist.next().context("UNEXP_END_ERR")?,
+                tokenlist.next().context("UNEXP_END_ERR")?.clone(),
                 node?,
                 self.term(tokenlist)?
             ));
@@ -166,7 +181,7 @@ impl<'a> Parser {
         let mut node = self.factor(tokenlist);
         while let Some(Operator('*')) | Some(Operator('/')) = tokenlist.peek() {
             node = Ok(node!(
-                *tokenlist.next().context("UNEXP_END_ERR")?,
+                tokenlist.next().context("UNEXP_END_ERR")?.clone(),
                 node?,
                 self.factor(tokenlist)?
             ));
@@ -183,7 +198,7 @@ impl<'a> Parser {
             Some(Operator('^')) => {
                 let parent = tokens.next().context("INSERT ERROR")?;
                 let rhs = self.factor(tokens);
-                Ok(node!(*parent, lhs?, rhs?))
+                Ok(node!(parent.clone(), lhs?, rhs?))
             }
             _ => lhs,
         }
@@ -203,11 +218,11 @@ impl<'a> Parser {
                 }
             }
             Some(Operator('!')) => Ok(node!(
-                *token.context("UNEXP_END_ERR")?,
+                token.context("UNEXP_END_ERR")?.clone(),
                 self.primary(tokenlist)?
             )),
-            Some(Identifier(_)) => Ok(node!(*token.context("UNEXP_END_ERR")?)),
-            Some(Number(_)) => Ok(node!(*token.context("UNEXP_END_ERR")?)),
+            Some(Identifier(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
+            Some(Number(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
             _ => Err(anyhow!("UNEXP_END_ERR")),
         }
     }
@@ -220,19 +235,4 @@ impl<'a> Parser {
             .context("SYNTAX_ERR")?;
         Ok(tree)
     }
-}
-
-fn get_identifier<I>(lexer: &mut Peekable<I>, c: char) -> String
-where
-    I: Iterator<Item = char>,
-{
-    let mut identifier = c.to_string();
-    while let Some(c) = lexer.peek() {
-        match c {
-            '0'..='9' | 'a'..='z' | 'A'..='Z' => identifier.push(*c),
-            _ => break,
-        }
-        lexer.next();
-    }
-    identifier
 }
