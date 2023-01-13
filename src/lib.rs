@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Context, Result};
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
+use std::iter::Peekable;
 use std::rc::Rc;
-use std::{iter::Peekable, ops::Deref, vec::IntoIter};
 use Token::*;
 
 macro_rules! node {
@@ -17,7 +16,7 @@ macro_rules! node {
     };
 }
 
-pub type Branch = Option<Rc<RefCell<Node>>>;
+pub type Branch = Rc<RefCell<Node>>;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Token {
@@ -29,84 +28,61 @@ pub enum Token {
 
 #[derive(Debug, Clone)]
 pub struct Node {
-    token: Rc<RefCell<Token>>,
-    left: Branch,
-    right: Branch,
+    pub token: Token,
+    left: Option<Branch>,
+    right: Option<Branch>,
 }
 
 impl Node {
-    pub fn new(token: Token, left: Branch, right: Branch) -> Node {
-        Node {
-            token: Rc::new(RefCell::new(token)),
-            left,
-            right,
-        }
-    }
-
-    pub fn left(&self) -> Branch {
-        self.left.clone()
-    }
-
-    pub fn right(&self) -> Branch {
-        self.right.clone()
+    pub fn new(token: Token, left: Option<Branch>, right: Option<Branch>) -> Node {
+        Node { token, left, right }
     }
 }
 
-use itertools::Itertools;
-
 impl IntoIterator for Node {
-    type Item = Rc<RefCell<Token>>;
-
+    type Item = Rc<RefCell<Self>>;
     type IntoIter = NodeIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        let left_iter = self
-            .left()
-            .map(|left| Rc::new(RefCell::new(left.as_ref().borrow_mut().clone().into_iter())));
-        let right_iter = self.right().map(|right| {
-            Rc::new(RefCell::new(
-                right.as_ref().borrow_mut().clone().into_iter(),
-            ))
-        });
+        let left = self.left.clone();
+        let right = self.right.clone();
 
         NodeIter {
-            node: self,
-            count: 0,
-            left_iter,
-            right_iter,
+            node: Some(Rc::new(RefCell::new(self))),
+            children: if let Some(left) = left {
+                let iter = left.borrow_mut().clone().into_iter();
+                if let Some(right) = right {
+                    Some(Rc::new(RefCell::new(
+                        iter.chain(right.borrow_mut().clone().into_iter()),
+                    )))
+                } else {
+                    Some(Rc::new(RefCell::new(iter)))
+                }
+            } else {
+                None
+            },
         }
     }
 }
 
 pub struct NodeIter {
-    node: Node,
-    pub count: usize,
-    left_iter: Option<Rc<RefCell<NodeIter>>>,
-    right_iter: Option<Rc<RefCell<NodeIter>>>,
+    node: Option<Branch>,
+    children: Option<Rc<RefCell<dyn Iterator<Item = Branch>>>>,
 }
 
 impl Iterator for NodeIter {
-    type Item = Rc<RefCell<Token>>;
+    type Item = Branch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.count {
-            0 => {
-                self.count += 1;
-                Some(self.node.token.clone())
-            }
-            1 => self.left_iter.as_ref().and_then(|left_iter| {
-                left_iter.as_ref().borrow_mut().next().or_else(|| {
-                    self.right_iter
-                        .as_ref()
-                        .map(|right_iter| right_iter.as_ref().borrow_mut().next())
-                        .flatten()
-                })
-            }),
-            _ => None,
-        }
+        self.node.take().or_else(|| {
+            self.children
+                .as_ref()
+                .and_then(|iter| iter.borrow_mut().next())
+        })
     }
 }
 
+#[derive(Default)]
 pub struct Parser;
 
 impl<'a> Parser {
@@ -151,7 +127,7 @@ impl<'a> Parser {
         Ok(tokenlist)
     }
 
-    fn equation<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    fn equation<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Option<Branch>>
     where
         I: Iterator<Item = &'a Token>,
     {
@@ -168,7 +144,7 @@ impl<'a> Parser {
         }
     }
 
-    fn expression<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    fn expression<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Option<Branch>>
     where
         I: Iterator<Item = &'a Token>,
     {
@@ -183,7 +159,7 @@ impl<'a> Parser {
         node
     }
 
-    fn term<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    fn term<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Option<Branch>>
     where
         I: Iterator<Item = &'a Token>,
     {
@@ -198,7 +174,7 @@ impl<'a> Parser {
         node
     }
 
-    fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Result<Branch>
+    fn factor<I>(&mut self, tokens: &mut Peekable<I>) -> Result<Option<Branch>>
     where
         I: Iterator<Item = &'a Token>,
     {
@@ -213,7 +189,7 @@ impl<'a> Parser {
         }
     }
 
-    fn primary<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Branch>
+    fn primary<I>(&mut self, tokenlist: &mut Peekable<I>) -> Result<Option<Branch>>
     where
         I: Iterator<Item = &'a Token>,
     {
@@ -236,7 +212,7 @@ impl<'a> Parser {
         }
     }
 
-    pub fn parse(&mut self, input: &str) -> Result<Branch> {
+    pub fn parse(&mut self, input: &str) -> Result<Option<Branch>> {
         let tokenlist = self.tokenize(input).context("TOKENIZATION_ERR")?;
         println!("{:?}", tokenlist);
         let tree = self

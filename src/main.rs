@@ -7,24 +7,18 @@ use anyhow::{Context, Result};
 use computorv1::*;
 
 fn main() -> Result<()> {
-    let mut parser = Parser::new();
+    let mut parser = Parser::default();
     let tree = parser.parse("3 + (4 * 5) = 0").context("Unable to parse")?;
 
-    println!("{:#?}", tree);
+    // println!("{:#?}", tree);
 
-    let test = tree
-        .clone()
-        .unwrap()
-        .as_ref()
-        .borrow_mut()
-        .clone()
-        .into_iter();
+    let test = tree.unwrap().borrow_mut().clone().into_iter();
 
     for t in test {
-        if *t.borrow_mut() == Token::Operator('-') {
-            *t.borrow_mut() = Token::Operator('+');
+        if t.borrow_mut().token == Token::Operator('-') {
+            t.borrow_mut().token = Token::Operator('+');
         }
-        dbg!("{}", t);
+        dbg!(t);
     }
 
     Ok(())
