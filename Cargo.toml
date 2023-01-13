@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 regex = "1"
 anyhow = "1.x"
+itertools = "0.10.5"
 
 [dev-dependencies]
 indoc = "1.x"

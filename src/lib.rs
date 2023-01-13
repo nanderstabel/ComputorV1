@@ -1,22 +1,25 @@
 use anyhow::{anyhow, Context, Result};
-use std::iter::Peekable;
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::{iter::Peekable, ops::Deref, vec::IntoIter};
 use Token::*;
 
 macro_rules! node {
     ($token:expr) => {
-        node!($token, Box::new(None), Box::new(None))
+        node!($token, None, None)
     };
     ($token:expr, $left:expr) => {
-        node!($token, $left, Box::new(None))
+        node!($token, $left, None)
     };
     ($token:expr, $left:expr, $right:expr) => {
-        Box::new(Some(Node::new($token, $left, $right)))
+        Some(Rc::new(RefCell::new(Node::new($token, $left, $right))))
     };
 }
 
-pub type Branch = Box<Option<Node>>;
+pub type Branch = Option<Rc<RefCell<Node>>>;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Token {
     Operator(char),
     Parenthesis(char),
@@ -24,16 +27,83 @@ pub enum Token {
     Identifier(char),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
-    token: Token,
+    token: Rc<RefCell<Token>>,
     left: Branch,
     right: Branch,
 }
 
 impl Node {
     pub fn new(token: Token, left: Branch, right: Branch) -> Node {
-        Node { token, left, right }
+        Node {
+            token: Rc::new(RefCell::new(token)),
+            left,
+            right,
+        }
+    }
+
+    pub fn left(&self) -> Branch {
+        self.left.clone()
+    }
+
+    pub fn right(&self) -> Branch {
+        self.right.clone()
+    }
+}
+
+use itertools::Itertools;
+
+impl IntoIterator for Node {
+    type Item = Rc<RefCell<Token>>;
+
+    type IntoIter = NodeIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let left_iter = self
+            .left()
+            .map(|left| Rc::new(RefCell::new(left.as_ref().borrow_mut().clone().into_iter())));
+        let right_iter = self.right().map(|right| {
+            Rc::new(RefCell::new(
+                right.as_ref().borrow_mut().clone().into_iter(),
+            ))
+        });
+
+        NodeIter {
+            node: self,
+            count: 0,
+            left_iter,
+            right_iter,
+        }
+    }
+}
+
+pub struct NodeIter {
+    node: Node,
+    pub count: usize,
+    left_iter: Option<Rc<RefCell<NodeIter>>>,
+    right_iter: Option<Rc<RefCell<NodeIter>>>,
+}
+
+impl Iterator for NodeIter {
+    type Item = Rc<RefCell<Token>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.count {
+            0 => {
+                self.count += 1;
+                Some(self.node.token.clone())
+            }
+            1 => self.left_iter.as_ref().and_then(|left_iter| {
+                left_iter.as_ref().borrow_mut().next().or_else(|| {
+                    self.right_iter
+                        .as_ref()
+                        .map(|right_iter| right_iter.as_ref().borrow_mut().next())
+                        .flatten()
+                })
+            }),
+            _ => None,
+        }
     }
 }
 
