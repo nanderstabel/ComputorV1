@@ -3,23 +3,34 @@
 // 92
 // https://app.diagrams.net/#G14rzgULr5arR4jENATQecRsNx08YcXdhu
 
+#[macro_use]
+mod node;
+mod parser;
+mod tokenizer;
+mod visualizer;
+
 use anyhow::{Context, Result};
-use computorv1::*;
+use node::Branch;
+use parser::Parser;
+use std::fs::File;
+use visualizer::render_to;
 
 fn main() -> Result<()> {
-    let mut parser = Parser::default();
-    let tree = parser.parse("3 + (4 * 5) = 0").context("Unable to parse")?;
+    let parser = Parser::new();
+    // let tree = parser.parse("3 + (4 * 5) = 0").context("Unable to parse")?.unwrap();
+    let tree: Branch = parser
+        .parse("5 * X^0 + 4 * X^1 - 9.3 * X^2 = 1 * X^0")
+        .context("Unable to parse")?
+        .unwrap();
 
     // println!("{:#?}", tree);
 
-    let test = tree.unwrap().borrow_mut().clone().into_iter();
+    let test = tree.borrow().clone().into_iter();
 
-    for t in test {
-        if t.borrow_mut().token == Token::Operator('-') {
-            t.borrow_mut().token = Token::Operator('+');
-        }
-        dbg!(t);
-    }
+    let edges: Vec<(usize, usize)> = test.flat_map(|n| n.borrow().edges()).collect();
+
+    let mut f = File::create("example1.dot").unwrap();
+    render_to(&mut f, edges);
 
     Ok(())
 }

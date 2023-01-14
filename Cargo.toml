@@ -10,10 +10,10 @@ edition = "2018"
 regex = "1"
 anyhow = "1.x"
 itertools = "0.10.5"
+dot = "0.1.4"
 
 [dev-dependencies]
 indoc = "1.x"
 assert_cmd = "2.x"
 predicates = "2.x"
 pretty_assertions = "1.x"
-dot = "0.1.x"
