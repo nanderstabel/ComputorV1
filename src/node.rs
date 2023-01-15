@@ -1,4 +1,7 @@
+use dot::{LabelText, Style};
+
 use crate::tokenizer::Token;
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::{Ref, RefMut};
 use std::rc::Rc;
@@ -48,6 +51,67 @@ pub struct Node {
     right: Option<Branch>,
 }
 
+#[derive(Clone)]
+pub struct Edge((usize, Token), (usize, Token));
+pub struct Edges(pub Vec<Edge>);
+
+impl<'a> dot::Labeller<'a, (usize, Token), Edge> for Edges {
+    fn graph_id(&'a self) -> dot::Id<'a> {
+        dot::Id::new("example1").unwrap()
+    }
+
+    fn node_id(&'a self, n: &(usize, Token)) -> dot::Id<'a> {
+        dot::Id::new(format!("N{}", n.0)).unwrap()
+    }
+
+    fn node_label(&'a self, n: &(usize, Token)) -> LabelText<'a> {
+        LabelText::label(format!("{}", n.1))
+    }
+
+    fn node_color(&'a self, node: &(usize, Token)) -> Option<LabelText<'a>> {
+        Some(LabelText::html(match node.1 {
+            Token::Operator(operator) => match operator {
+                '+' | '-' => "#F1E2A7",
+                '*' | '/' | '%' => "#E9D172",
+                '^' => "#E1C03D",
+                _ => unimplemented!(),
+            },
+            Token::Parenthesis(_) => unreachable!(),
+            Token::Number(_) => "#00A0B0",
+            Token::Identifier(_) => "#D3643B",
+        }))
+    }
+
+    fn node_style(&'a self, _n: &(usize, Token)) -> Style {
+        Style::Filled
+    }
+}
+
+impl<'a> dot::GraphWalk<'a, (usize, Token), Edge> for Edges {
+    fn nodes(&self) -> dot::Nodes<'a, (usize, Token)> {
+        let &Edges(ref v) = self;
+        let mut nodes = Vec::with_capacity(v.len());
+        for Edge((source_id, source_token), (target_id, target_token)) in v.into_iter() {
+            nodes.push((*source_id, source_token.clone()));
+            nodes.push((*target_id, target_token.clone()));
+        }
+        Cow::Owned(nodes)
+    }
+
+    fn edges(&'a self) -> dot::Edges<'a, Edge> {
+        let &Edges(ref edges) = self;
+        Cow::Borrowed(&edges[..])
+    }
+
+    fn source(&self, e: &Edge) -> (usize, Token) {
+        e.0.clone()
+    }
+
+    fn target(&self, e: &Edge) -> (usize, Token) {
+        e.1.clone()
+    }
+}
+
 impl Node {
     pub fn new(token: Token, left: Option<Branch>, right: Option<Branch>) -> Node {
         Node {
@@ -58,12 +122,18 @@ impl Node {
         }
     }
 
-    pub fn edges(&self) -> Vec<(usize, usize)> {
+    pub fn edges(&self) -> Vec<Edge> {
         let mut ret = vec![];
         if let Some(left) = &self.left {
-            ret.push((self.id, left.borrow().id));
+            ret.push(Edge(
+                (self.id, self.token.clone()),
+                (left.borrow().id, left.borrow().token.clone()),
+            ));
             if let Some(right) = &self.right {
-                ret.push((self.id, right.borrow().id));
+                ret.push(Edge(
+                    (self.id, self.token.clone()),
+                    (right.borrow().id, right.borrow().token.clone()),
+                ));
             }
         }
         ret

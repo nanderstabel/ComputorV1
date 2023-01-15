@@ -1,12 +1,17 @@
 use anyhow::{anyhow, Context, Result};
+use derive_more::Display;
 use std::iter::Peekable;
 use Token::*;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Display)]
 pub enum Token {
+    // #[display(fmt = "{}", _0.0)]
     Operator(char),
+    // #[display(fmt = "{}", _0)]
     Parenthesis(char),
+    // #[display(fmt = "{}", _0)]
     Number(f64),
+    // #[display(fmt = "{}", _0)]
     Identifier(String),
 }
 
