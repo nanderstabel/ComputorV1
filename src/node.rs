@@ -47,8 +47,8 @@ macro_rules! node {
 pub struct Node {
     pub id: usize,
     pub token: Token,
-    left: Option<Branch>,
-    right: Option<Branch>,
+    pub left: Option<Branch>,
+    pub right: Option<Branch>,
 }
 
 #[derive(Clone)]
