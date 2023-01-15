@@ -97,11 +97,11 @@ impl Display for Term {
             write!(f, "- ")?;
         }
         if let Some(coefficient) = self.coefficient {
-            write!(f, "{coefficient}")?;
+            write!(f, "{coefficient} ")?;
         }
 
         if let Some(operator) = self.operator {
-            write!(f, " {operator} ")?;
+            write!(f, "{operator} ")?;
         }
 
         if let Some(identifier) = &self.identifier {
