@@ -55,7 +55,7 @@ impl<'a> Tokenizer {
             }
             lexer.next();
         }
-        Ok(identifier.to_lowercase())
+        Ok(identifier.to_uppercase())
     }
 
     pub fn tokenize(&self, input: &str) -> Result<Vec<Token>> {

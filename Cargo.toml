@@ -13,6 +13,7 @@ itertools = "0.10.5"
 dot = "0.1.4"
 derive_more = "0.99.17"
 merge = "0.1.0"
+indoc = "1.0"
 
 [dev-dependencies]
 indoc = "1.x"
