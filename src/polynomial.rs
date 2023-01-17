@@ -15,6 +15,16 @@ pub struct Term {
     pub exponent: Option<f64>,
 }
 
+impl Term {
+    pub fn coefficient(&self) -> f64 {
+        if self.is_sign_negative {
+            -self.coefficient.unwrap()
+        } else {
+            self.coefficient.unwrap()
+        }
+    }
+}
+
 impl Add for Term {
     type Output = Self;
 
@@ -157,49 +167,29 @@ impl Polynomial {
         let mut terms = self.0.clone();
         terms.reverse();
 
-        match self.degree() {
+        let degree = self.degree();
+
+        let mut coefficients = terms.iter().map(|t| t.coefficient());
+        let a = coefficients.next().unwrap_or_default();
+        let b = coefficients.next().unwrap_or_default();
+        let c = coefficients.next().unwrap_or_default();
+        let d = coefficients.next().unwrap_or_default();
+
+        match degree {
             1 => {
-                let a = terms[0].coefficient.unwrap()
-                    * if terms[0].is_sign_negative { -1.0 } else { 1.0 };
-                let b = terms[1].coefficient.unwrap()
-                    * if terms[1].is_sign_negative { -1.0 } else { 1.0 };
                 vec![-(b / a)]
             }
-            2 => {
-                let a = terms[0].coefficient.unwrap()
-                    * if terms[0].is_sign_negative { -1.0 } else { 1.0 };
-                let b = terms[1].coefficient.unwrap()
-                    * if terms[1].is_sign_negative { -1.0 } else { 1.0 };
-                let c = terms[2].coefficient.unwrap()
-                    * if terms[2].is_sign_negative { -1.0 } else { 1.0 };
-                match (b * b - 4. * a * c).partial_cmp(&0.0) {
-                    Some(Greater) => vec![
-                        (-b - f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
-                        (-b + f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
-                    ],
-                    Some(Equal) => vec![-b / (2. * a)],
-                    Some(Less) => vec![],
-                    None => panic!(),
-                }
-            }
+            2 => match (b * b - 4. * a * c).partial_cmp(&0.0) {
+                Some(Greater) => vec![
+                    (-b - f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
+                    (-b + f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
+                ],
+                Some(Equal) => vec![-b / (2. * a)],
+                Some(Less) => vec![],
+                None => panic!(),
+            },
             3 => {
-                let a = terms[0].coefficient.unwrap()
-                    * if terms[0].is_sign_negative { -1.0 } else { 1.0 };
-                let b = terms[1].coefficient.unwrap()
-                    * if terms[1].is_sign_negative { -1.0 } else { 1.0 };
-                let c = terms[2].coefficient.unwrap()
-                    * if terms[2].is_sign_negative { -1.0 } else { 1.0 };
-                let d = terms[3].coefficient.unwrap()
-                    * if terms[3].is_sign_negative { -1.0 } else { 1.0 };
-                match (b * b - 4. * a * c).partial_cmp(&0.0) {
-                    Some(Greater) => vec![
-                        (-b - f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
-                        (-b + f64::sqrt(b * b - 4. * a * c)) / (2.0 * a),
-                    ],
-                    Some(Equal) => vec![-b / (2. * a)],
-                    Some(Less) => vec![],
-                    None => panic!(),
-                }
+                todo!();
             }
             _ => unimplemented!(),
         }
