@@ -32,7 +32,7 @@ mod integration_tests {
 			Reduced form: 1 * X^0 + 4 * X^1 = 0
 			Polynomial degree: 1
 			The solution is:
-			-0.25
+			-0.250000
 		"
         );
 
@@ -77,7 +77,7 @@ mod integration_tests {
 			Reduced form: 1 * X^0 + 4 * X^1 = 0
 			Polynomial degree: 1
 			The solution is:
-			-0.25
+			-0.250000
 		"
         );
 

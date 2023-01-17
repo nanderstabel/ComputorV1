@@ -6,11 +6,13 @@
 #[macro_use]
 mod node;
 mod parser;
-mod polynomial;
+mod types;
 mod tokenizer;
 mod visualizer;
 
-use crate::polynomial::Polynomial;
+use std::env::args;
+
+use crate::types::polynomial::Polynomial;
 use anyhow::{Context, Result};
 use indoc::indoc;
 use node::Branch;
@@ -18,13 +20,10 @@ use parser::Parser;
 use visualizer::render_graph;
 
 fn main() -> Result<()> {
+    let input: Vec<String> = args().collect();
     let parser = Parser::new();
-    // let tree = parser.parse("3 + (4 * 5) = 0").context("Unable to parse")?.unwrap();
     let tree: Branch = parser
-        // .parse("5 * X^0 + 4 * X^1 - 9.3 * X^2 = 1 * X^0")
-        .parse("5 * X^0 + 4 * X^1 = 4 * X^0")
-        // .parse("8 * X^0 - 6 * X^1 + 0 * X^2 - 5.6 * X^3 = 3 * X^0")
-        // .parse("(X+3) * (X + 1) = 0")
+        .parse(input[1].as_str())
         .context("Unable to parse")?
         .unwrap();
 

@@ -16,7 +16,6 @@ merge = "0.1.0"
 indoc = "1.0"
 
 [dev-dependencies]
-indoc = "1.x"
 assert_cmd = "2.x"
 predicates = "2.x"
 pretty_assertions = "1.x"

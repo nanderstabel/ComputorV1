@@ -173,7 +173,7 @@ impl Polynomial {
         let a = coefficients.next().unwrap_or_default();
         let b = coefficients.next().unwrap_or_default();
         let c = coefficients.next().unwrap_or_default();
-        let d = coefficients.next().unwrap_or_default();
+        let _d = coefficients.next().unwrap_or_default();
 
         match degree {
             1 => {

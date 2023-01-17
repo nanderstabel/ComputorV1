@@ -76,9 +76,9 @@ impl<'a> dot::Labeller<'a, (usize, Token), Edge> for Edges {
                 '^' => "#E1C03D",
                 _ => unimplemented!(),
             },
-            Token::Parenthesis(_) => unreachable!(),
             Token::Number(_) => "#00A0B0",
             Token::Identifier(_) => "#D3643B",
+            _ => unreachable!(),
         }))
     }
 

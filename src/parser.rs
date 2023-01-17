@@ -87,10 +87,6 @@ impl<'a> Parser {
                     _ => Err(anyhow!("MISSING_PAREN_ERR")),
                 }
             }
-            Some(Operator('!')) => Ok(node!(
-                token.context("UNEXP_END_ERR")?.clone(),
-                self.primary(tokenlist)?
-            )),
             Some(Identifier(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
             Some(Number(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
             _ => Err(anyhow!("UNEXP_END_ERR")),
