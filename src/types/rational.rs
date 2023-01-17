@@ -1,7 +1,7 @@
 use derive_more::Display;
 use super::{Type, polynomial::Term};
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Clone)]
 pub struct Rational(pub f64);
 
 impl Type for Rational {

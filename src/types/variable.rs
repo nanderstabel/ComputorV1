@@ -1,7 +1,7 @@
 use derive_more::Display;
 use super::{Type, polynomial::Term};
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Clone, PartialEq)]
 pub struct Variable(pub String);
 
 impl Type for Variable {

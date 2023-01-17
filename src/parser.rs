@@ -1,11 +1,11 @@
 use crate::node::{Branch, Node};
 use crate::tokenizer::{Token, Token::*, Tokenizer};
+use crate::types::Type;
+use crate::types::function::Function;
 use crate::types::rational::Rational;
 use crate::types::variable::Variable;
 use anyhow::{anyhow, Context, Result};
 use std::iter::Peekable;
-use std::rc::Rc;
-use crate::node::NodeObject;
 
 #[derive(Default)]
 pub struct Parser;
@@ -97,8 +97,23 @@ impl<'a> Parser {
                     _ => Err(anyhow!("MISSING_PAREN_ERR")),
                 }
             }
-            Some(Identifier(identifier)) => Ok(node!(NodeObject::Operand(Rc::new(Variable(identifier.clone()))))),
-            Some(Number(number)) => Ok(node!(NodeObject::Operand(Rc::new(Rational(*number))))),
+            Some(Identifier(identifier)) => {
+                if let Some(Parenthesis('(')) = tokenlist.peek() {
+                    tokenlist.next();
+                    let arg = match tokenlist.next() {
+                        Some(Identifier(identifier)) => Ok(identifier),
+                        _ => Err(anyhow!("MISSING_PAREN_ERR")),
+                    }?;
+                    match tokenlist.next() {
+                        Some(Parenthesis(')')) => Ok(()),
+                        _ => Err(anyhow!("MISSING_PAREN_ERR")),
+                    }?;
+                    Ok(node!(Function{ identifier: identifier.clone(), arg: arg.clone()}.into_node_object()))
+                } else {
+                    Ok(node!(Variable(identifier.clone()).into_node_object()))
+                }
+            },
+            Some(Number(number)) => Ok(node!(Rational(*number).into_node_object())),
             _ => Err(anyhow!("UNEXP_END_ERR")),
         }
     }
@@ -109,4 +124,39 @@ impl<'a> Parser {
         self.equation(&mut tokenlist.iter().peekable())
             .context("SYNTAX_ERR")
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::node::NodeObject;
+    use super::*;
+
+    fn get_branch(input: &str) -> Node {
+        let parser = Parser::new();
+        parser.parse(input).unwrap().unwrap().borrow().clone()
+    }
+
+    #[test]
+    fn test_variable() {
+        let mut branches = get_branch("identifier + function(identifier) = 0").into_iter();
+
+        if let Some(branch) = branches.next() {
+            if let NodeObject::Operand(variable) = branch.borrow().clone().object {
+                assert_eq!(Variable("identifier".to_owned()).into_term(), variable.into_term());
+            }
+        } else {
+            panic!()
+        }
+        if let Some(branch) = branches.next() {
+            if let NodeObject::Operand(function) = branch.borrow().clone().object {
+                assert_eq!(Function { identifier: "identifier".to_owned(), arg: "identifier".to_owned() }.into_term(), function.into_term());
+            }
+        } else {
+            panic!()
+        }
+        // assert!(branches.next().is_some());
+        // assert!(branches.next().is_some());
+        assert!(branches.next().is_none());
+    }
+
 }
