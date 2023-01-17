@@ -2,6 +2,8 @@ use dot::{LabelText, Style};
 
 use crate::tokenizer::Token;
 use crate::types::Type;
+use crate::types::rational::Rational;
+use crate::types::variable::Variable;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::{Ref, RefMut};
@@ -43,19 +45,20 @@ impl<'a> dot::Labeller<'a, (usize, NodeObject), Edge> for Edges {
     //     LabelText::label(format!("{}", n.1))
     // }
 
-    // fn node_color(&'a self, node: &(usize, NodeObject)) -> Option<LabelText<'a>> {
-    //     Some(LabelText::html(match node.1 {
-    //         NodeObject::Operator(operator) => match operator {
-    //             '+' | '-' => "#F1E2A7",
-    //             '*' | '/' | '%' => "#E9D172",
-    //             '^' => "#E1C03D",
-    //             _ => unimplemented!(),
-    //         },
-    //         NodeObject::Number(_) => "#00A0B0",
-    //         NodeObject::Identifier(_) => "#D3643B",
-    //         _ => unreachable!(),
-    //     }))
-    // }
+    fn node_color(&'a self, node: &(usize, NodeObject)) -> Option<LabelText<'a>> {
+        Some(LabelText::html(match node.1.clone() {
+            NodeObject::Operator(Token::Operator(operator)) => match operator {
+                '+' | '-' => "#F1E2A7",
+                '*' | '/' | '%' => "#E9D172",
+                '^' => "#E1C03D",
+                _ => unimplemented!(),
+            },
+            // NodeObject::Operand(Rational(_)) => "#00A0B0",
+            // NodeObject::Operand(Variable(_)) => "#D3643B",
+            NodeObject::Operand(operand) => operand.node_color(),
+            _ => unreachable!(),
+        }))
+    }
 
     fn node_style(&'a self, _n: &(usize, NodeObject)) -> Style {
         Style::Filled
@@ -90,7 +93,7 @@ impl<'a> dot::GraphWalk<'a, (usize, NodeObject), Edge> for Edges {
 #[derive(Debug, Clone)]
 pub enum NodeObject {
     Operator(Token),
-    Operand(&'static dyn Type)
+    Operand(Rc<dyn Type>)
 }
 
 impl Into<Token> for NodeObject {

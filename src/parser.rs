@@ -1,7 +1,11 @@
 use crate::node::{Branch, Node};
 use crate::tokenizer::{Token, Token::*, Tokenizer};
+use crate::types::rational::Rational;
+use crate::types::variable::Variable;
 use anyhow::{anyhow, Context, Result};
 use std::iter::Peekable;
+use std::rc::Rc;
+use crate::node::NodeObject;
 
 #[derive(Default)]
 pub struct Parser;
@@ -87,8 +91,8 @@ impl<'a> Parser {
                     _ => Err(anyhow!("MISSING_PAREN_ERR")),
                 }
             }
-            Some(Identifier(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.into())),
-            Some(Number(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.into())),
+            Some(Identifier(identifier)) => Ok(node!(NodeObject::Operand(Rc::new(Variable(identifier.clone()))))),
+            Some(Number(number)) => Ok(node!(NodeObject::Operand(Rc::new(Rational(*number))))),
             _ => Err(anyhow!("UNEXP_END_ERR")),
         }
     }
