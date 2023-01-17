@@ -8,6 +8,7 @@ use std::cell::{Ref, RefMut};
 use std::fmt::{Debug};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use derive_more::Display;
 
 #[derive(Debug, Clone)]
 pub struct Branch(Rc<RefCell<Node>>);
@@ -39,9 +40,9 @@ impl<'a> dot::Labeller<'a, (usize, NodeObject), Edge> for Edges {
         dot::Id::new(format!("N{}", n.0)).unwrap()
     }
 
-    // fn node_label(&'a self, n: &(usize, NodeObject)) -> LabelText<'a> {
-    //     LabelText::label(format!("{}", n.1))
-    // }
+    fn node_label(&'a self, n: &(usize, NodeObject)) -> LabelText<'a> {
+        LabelText::label(format!("{}", n.1))
+    }
 
     fn node_color(&'a self, node: &(usize, NodeObject)) -> Option<LabelText<'a>> {
         Some(LabelText::html(match node.1.clone() {
@@ -52,8 +53,6 @@ impl<'a> dot::Labeller<'a, (usize, NodeObject), Edge> for Edges {
                 _ => unimplemented!(),
             },
             NodeObject::Operator(Token::Number(_)) => "#00A0B0",
-            // NodeObject::Operand(Rational(_)) => "#00A0B0",
-            // NodeObject::Operand(Variable(_)) => "#D3643B",
             NodeObject::Operand(operand) => operand.node_color(),
             _ => unreachable!(),
         }))
@@ -89,7 +88,7 @@ impl<'a> dot::GraphWalk<'a, (usize, NodeObject), Edge> for Edges {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Display)]
 pub enum NodeObject {
     Operator(Token),
     Operand(Rc<dyn Type>)
