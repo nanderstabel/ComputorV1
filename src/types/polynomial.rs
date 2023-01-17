@@ -70,14 +70,15 @@ impl From<Branch> for Term {
     fn from(branch: Branch) -> Self {
         let node = branch.borrow().clone();
         let mut term = Term::default();
-        match node.token {
+
+        match node.object.into() {
             Operator('-') | Operator('+') => panic!(),
             Operator(operator) => match operator {
                 '^' => {
                     term.merge(Term::from(node.left.unwrap()));
                     if let Some(right) = node.right {
                         let right_node = right.borrow().clone();
-                        match right_node.token {
+                        match right_node.object.into() {
                             Number(exponent) => term.exponent = Some(exponent),
                             _ => unimplemented!(),
                         }
@@ -201,7 +202,7 @@ impl From<Branch> for Polynomial {
         let node = branch.borrow().clone();
 
         let mut polynomial = Polynomial::default();
-        match node.token {
+        match node.object.into() {
             Operator(operator) if operator == '+' || operator == '-' => {
                 polynomial.append(&mut Polynomial::from(node.left.unwrap()));
                 let mut right = Polynomial::from(node.right.unwrap());

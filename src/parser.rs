@@ -20,7 +20,7 @@ impl<'a> Parser {
             Some(Operator('=')) => {
                 let rhs = self.expression(tokenlist);
                 match tokenlist.next() {
-                    None => Ok(node!(Operator('-'), lhs?, rhs?)),
+                    None => Ok(node!((&Operator('-')).into(), lhs?, rhs?)),
                     Some(t) => Err(anyhow!("{}{:?}", "UNEXP_TOKEN_ERR", t)),
                 }
             }
@@ -35,7 +35,7 @@ impl<'a> Parser {
         let mut node = self.term(tokenlist);
         while let Some(Operator('+')) | Some(Operator('-')) = tokenlist.peek() {
             node = Ok(node!(
-                tokenlist.next().context("UNEXP_END_ERR")?.clone(),
+                tokenlist.next().context("UNEXP_END_ERR")?.into(),
                 node?,
                 self.term(tokenlist)?
             ));
@@ -51,7 +51,7 @@ impl<'a> Parser {
         while let Some(Operator('*')) | Some(Operator('/')) | Some(Operator('%')) = tokenlist.peek()
         {
             node = Ok(node!(
-                tokenlist.next().context("UNEXP_END_ERR")?.clone(),
+                tokenlist.next().context("UNEXP_END_ERR")?.into(),
                 node?,
                 self.factor(tokenlist)?
             ));
@@ -68,7 +68,7 @@ impl<'a> Parser {
             Some(Operator('^')) => {
                 let parent = tokens.next().context("INSERT ERROR")?;
                 let rhs = self.factor(tokens);
-                Ok(node!(parent.clone(), lhs?, rhs?))
+                Ok(node!(parent.into(), lhs?, rhs?))
             }
             _ => lhs,
         }
@@ -87,8 +87,8 @@ impl<'a> Parser {
                     _ => Err(anyhow!("MISSING_PAREN_ERR")),
                 }
             }
-            Some(Identifier(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
-            Some(Number(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.clone())),
+            Some(Identifier(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.into())),
+            Some(Number(_)) => Ok(node!(token.context("UNEXP_END_ERR")?.into())),
             _ => Err(anyhow!("UNEXP_END_ERR")),
         }
     }
