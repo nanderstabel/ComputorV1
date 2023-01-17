@@ -1,4 +1,4 @@
-use crate::node::Branch;
+use crate::node::{Branch, NodeObject};
 use crate::tokenizer::Token::*;
 use derive_more::{Deref, DerefMut};
 use itertools::Itertools;
@@ -71,14 +71,15 @@ impl From<Branch> for Term {
         let node = branch.borrow().clone();
         let mut term = Term::default();
 
-        match node.object.into() {
-            Operator('-') | Operator('+') => panic!(),
-            Operator(operator) => match operator {
+        match node.object {
+            NodeObject::Operator(Operator('-')) | NodeObject::Operator(Operator('+')) => panic!(),
+            NodeObject::Operator(Operator(operator)) => match operator {
                 '^' => {
                     term.merge(Term::from(node.left.unwrap()));
                     if let Some(right) = node.right {
                         let right_node = right.borrow().clone();
                         match right_node.object.into() {
+                            // TODO: Make this generic ot not?
                             Number(exponent) => term.exponent = Some(exponent),
                             _ => unimplemented!(),
                         }
@@ -91,15 +92,16 @@ impl From<Branch> for Term {
                 }
                 _ => panic!(),
             },
-            Identifier(identifier) => term.identifier = Some(identifier),
-            Number(coefficient) => {
-                if coefficient.is_sign_negative() {
-                    term.is_sign_negative = true;
-                    term.coefficient = Some(-coefficient);
-                } else {
-                    term.coefficient = Some(coefficient);
-                }
-            }
+            NodeObject::Operand(operand) => term.merge(operand.into_term()),
+            // Identifier(identifier) => term.identifier = Some(identifier),
+            // Number(coefficient) => {
+            //     if coefficient.is_sign_negative() {
+            //         term.is_sign_negative = true;
+            //         term.coefficient = Some(-coefficient);
+            //     } else {
+            //         term.coefficient = Some(coefficient);
+            //     }
+            // }
             _ => unreachable!(),
         }
         term

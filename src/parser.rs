@@ -71,8 +71,14 @@ impl<'a> Parser {
         match tokens.peek() {
             Some(Operator('^')) => {
                 let parent = tokens.next().context("INSERT ERROR")?;
-                let rhs = self.factor(tokens);
-                Ok(node!(parent.into(), lhs?, rhs?))
+                // Keep this: let rhs = self.factor(tokens);
+                // This is a temporary solution in order to cast the exponent as a Token rather than a Rational.
+                let temp = if let Some(Number(number)) = tokens.next() {
+                    node!((&Number(*number)).into(), None, None)
+                } else {
+                    panic!()
+                };
+                Ok(node!(parent.into(), lhs?, temp))
             }
             _ => lhs,
         }

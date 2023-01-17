@@ -2,12 +2,10 @@ use dot::{LabelText, Style};
 
 use crate::tokenizer::Token;
 use crate::types::Type;
-use crate::types::rational::Rational;
-use crate::types::variable::Variable;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::{Ref, RefMut};
-use std::fmt::Debug;
+use std::fmt::{Debug};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -53,6 +51,7 @@ impl<'a> dot::Labeller<'a, (usize, NodeObject), Edge> for Edges {
                 '^' => "#E1C03D",
                 _ => unimplemented!(),
             },
+            NodeObject::Operator(Token::Number(_)) => "#00A0B0",
             // NodeObject::Operand(Rational(_)) => "#00A0B0",
             // NodeObject::Operand(Variable(_)) => "#D3643B",
             NodeObject::Operand(operand) => operand.node_color(),
