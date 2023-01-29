@@ -2,13 +2,13 @@ use dot::{LabelText, Style};
 
 use crate::tokenizer::Token;
 use crate::types::Type;
+use derive_more::Display;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::cell::{Ref, RefMut};
-use std::fmt::{Debug};
+use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use derive_more::Display;
 
 #[derive(Debug, Clone)]
 pub struct Branch(Rc<RefCell<Node>>);
@@ -91,14 +91,14 @@ impl<'a> dot::GraphWalk<'a, (usize, NodeObject), Edge> for Edges {
 #[derive(Debug, Clone, Display)]
 pub enum NodeObject {
     Operator(Token),
-    Operand(Rc<dyn Type>)
+    Operand(Rc<dyn Type>),
 }
 
 impl Into<Token> for NodeObject {
     fn into(self) -> Token {
         match self {
             NodeObject::Operator(token) => token,
-            NodeObject::Operand(_) => panic!()
+            NodeObject::Operand(_) => panic!(),
         }
     }
 }
@@ -170,20 +170,22 @@ impl IntoIterator for Node {
         let left = self.left.clone();
         let right = self.right.clone();
 
+        let children = left.map(|mut left| {
+            let iter = left.borrow_mut().clone().into_iter();
+            let children: Rc<RefCell<dyn Iterator<Item = Branch>>> = if let Some(mut right) = right
+            {
+                Rc::new(RefCell::new(
+                    iter.chain(right.borrow_mut().clone().into_iter()),
+                ))
+            } else {
+                Rc::new(RefCell::new(iter))
+            };
+            children
+        });
+
         NodeIter {
             node: Some(Branch::new(self)),
-            children: if let Some(mut left) = left {
-                let iter = left.borrow_mut().clone().into_iter();
-                if let Some(mut right) = right {
-                    Some(Rc::new(RefCell::new(
-                        iter.chain(right.borrow_mut().clone().into_iter()),
-                    )))
-                } else {
-                    Some(Rc::new(RefCell::new(iter)))
-                }
-            } else {
-                None
-            },
+            children,
         }
     }
 }
