@@ -172,15 +172,10 @@ impl IntoIterator for Node {
 
         let children = left.map(|mut left| {
             let iter = left.borrow_mut().clone().into_iter();
-            let children: Rc<RefCell<dyn Iterator<Item = Branch>>> = if let Some(mut right) = right
-            {
-                Rc::new(RefCell::new(
-                    iter.chain(right.borrow_mut().clone().into_iter()),
-                ))
-            } else {
-                Rc::new(RefCell::new(iter))
-            };
-            children
+            Rc::new(RefCell::new(right.map_or(
+                Box::new(iter.clone()) as Box<dyn Iterator<Item = Branch>>,
+                |mut right| Box::new(iter.chain(right.borrow_mut().clone().into_iter())),
+            )))
         });
 
         NodeIter {
@@ -190,9 +185,10 @@ impl IntoIterator for Node {
     }
 }
 
+#[derive(Clone)]
 pub struct NodeIter {
     node: Option<Branch>,
-    children: Option<Rc<RefCell<dyn Iterator<Item = Branch>>>>,
+    children: Option<Rc<RefCell<Box<dyn Iterator<Item = Branch>>>>>,
 }
 
 impl Iterator for NodeIter {
